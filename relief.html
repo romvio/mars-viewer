@@ -74,6 +74,29 @@
       fill: rgba(255, 255, 255, 0.686);
       stroke: none;
     }
+    cesium-viewer-toolbar {
+      position: absolute !important;
+      bottom: auto !important;
+      left: auto !important;
+      top: 27px !important;
+      right: 70px !important;
+      display: flex !important;
+      flex-direction: row !important;
+      gap: 5px;
+      z-index: 9999;
+    }
+    .cesium-viewer-toolbar {
+      position: absolute !important;
+      bottom: auto !important;
+      left: auto !important;
+      top: 27px !important;
+      right: 70px !important;
+      display: flex !important;
+      flex-direction: row !important;
+      gap: 5px;
+      z-index: 9999;
+    }
+
     #sheet-overlay{
       position:fixed; inset:0;
       background:rgba(0,0,0,.7);
@@ -189,13 +212,13 @@
       const viewer = new Cesium.Viewer('cesiumContainer', {
         imageryProvider: false,
         baseLayerPicker: false,
+        sceneModePicker: true,
         geocoder: false,
         timeline: false,
         animation: false,
         infoBox: false,
         navigationHelpButton: false,
         homeButton: false,
-        sceneModePicker: false,
         fullscreenButton: false,
         shouldAnimate: true,
         automaticallyTrackDataSourceClocks: false,
@@ -208,7 +231,9 @@
       viewer.scene.fog.enabled = false;
       viewer._cesiumWidget._creditContainer.style.display = "none";
       viewer.scene.globe.depthTestAgainstTerrain = false;
-
+      viewer.scene.globe.show = true;
+      viewer.scene.globe.maximumScreenSpaceError = 128; // prevent skipping terrain
+      viewer.scene.globe.tileCacheSize = 10000;         // large tile cache
       viewer.camera.setView({
         destination: Cesium.Cartesian3.fromDegrees(-60, 20, 10000000)
       });
