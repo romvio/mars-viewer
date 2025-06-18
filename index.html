@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+
+  <title>Emirates Mars Mission Globe</title>
+  <link rel="stylesheet" href="./assets/sidemenu/sidemenu.css">
+  <link rel="stylesheet" href="./assets/loader/loader.css">
+  <link rel="stylesheet" href="./assets/search-bar/search-css.css">
+  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.112/Build/Cesium/Widgets/widgets.css">
+  <link rel="preload" href="custom-fonts/CaviarDreams.ttf" as="font" type="font/ttf" crossorigin="anonymous">
+
+  <style>
+    @font-face {
+      font-family: 'MarsFont';
+      src: url('custom-fonts/Mont-ExtraLightDEMO.otf') format('truetype');
+    }
+
+    html, body, #cesiumContainer {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: 'MarsFont', sans-serif;
+    }
+
+    #cesiumContainer {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+    /* Position your clickable image in the top-left, above Cesium */
+    .top-left-button {
+      position: absolute;
+      top: 1rem;   /* you can tweak these offsets */
+      left: 1rem;
+      z-index: 1000;  /* anything above Cesium (Cesium’s default z-index is 0) */
+      max-width: 40vw; /* never exceed 40% of viewport width */
+      height: auto;
+    }
+    .top-left-button img {
+      cursor: pointer;
+      display: block;
+      width: 170px; /* or whatever size your logo is */
+      height: auto;
+    }
+    .some-panel {
+      padding: 1rem;
+      margin: 0 auto;
+      max-width: 90%;
+    }
+    .cesium-selection-wrapper {
+      position: absolute;
+      width: 160px;
+      height: 160px;
+      pointer-events: none;
+      visibility: hidden;
+      opacity: 0;
+      transition: visibility 0s 0.2s, opacity 0.2s ease-in;
+    }
+    .cesium-selection-wrapper-visible {
+      visibility: visible;
+      opacity: 1;
+      transition: opacity 0.2s ease-out;
+    }
+    .cesium-selection-wrapper svg {
+      fill: rgba(255, 255, 255, 0.686);
+      stroke: none;
+    }
+    .cesium-viewer-toolbar {
+      position: absolute !important;
+      bottom: auto !important;
+      left: auto !important;
+      top: 27px !important;
+      right: 70px !important;
+      display: flex !important;
+      flex-direction: row !important;
+      gap: 5px;
+      z-index: 9999;
+    }
+
+    .sheet {
+      position: absolute;
+      inset: 0;                       /* top 0 / right 0 / bottom 0 / left 0 */
+      background: rgba(0,0,0,0.75);   /* 75 % opacity */
+      color: #fff;
+      display: flex;                  /* show via JS */
+      align-items: center;            /* (flexbox) centre text block */
+      justify-content: center;
+      z-index: 5;                     /* above Cesium widgets */
+      padding: 2rem;
+      box-sizing: border-box;
+      font-family: system-ui;
+      opacity:0; visibility:hidden; pointer-events:none;
+      transition:opacity .25s ease;
+    }
+    .sheet--visible {
+    opacity:1; visibility:visible; pointer-events:auto;
+    }
+    #sheetContent { max-width:600px; text-align:center; }
+
+    #closeSheet {
+      position:absolute; top:1rem; right:1rem;
+      background:none; border:none; color:#fff;
+      font-size:2rem; cursor:pointer;
+    }
+    #closeSheet:hover { opacity:.7; }
+    
+    .overlay-dropdown {
+    font-family: 'MarsFont', sans-serif;
+    font-size: 16px;
+    padding: 0.5rem 1rem;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    border: 1px solid white;
+    border-radius: 8px;
+  }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="top-left-button" onclick="showLoader(event, 'index.html')">
+    <img
+      src="https://pub-a37b0d1a11e34f5781e5abc040e1eef8.r2.dev/CASS%2Blogo%2Bhorizontal-white.png"
+      alt="Go back home"
+      style="height:auto; display:block;"
+    />
+  </a>
+
+  <div id="search-container">
+    <input
+      type="text"
+      id="searchInput"
+      placeholder="Search Mars sites…"
+      autocomplete="off"
+    />
+    <div id="searchResults" class="search-results"></div>
+  </div>
+
+  <div style="position:absolute;bottom:1rem;right:1rem;z-index:999;">
+    <select class="overlay-dropdown" onchange="switchImagery(this.value)">
+      <option value="tiles">Satellite</option>
+      <option value="quadrangles">Quadrangles</option>
+    </select>
+  </div>
+
+  <div style="position: absolute; bottom: 1rem; left: 1rem; z-index: 999;">
+    <select onchange="toggleOverlay(this.value)" class="overlay-dropdown">
+      <option value="">Overlay: None</option>
+      <option value="relief">Relief</option>
+      <option value="temperature">Temperature</option>
+    </select>
+  </div>
+
+  <div id="cesiumContainer"></div>
+  <span onclick="openNav()" class="menu-btn">&#9776;</span>
+
+  <div id="myNav" class="overlay">
+    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+    <div class="overlay-content">
+      <a href="index.html" onclick="showLoader(event, 'index.html')">Home</a>
+      <a href="labeled_map.html"  onclick="showLoader(event, 'labeled_map.html')">Maps</a>    
+      <a href="relief.html"  onclick="showLoader(event, 'relief.html')">Relief</a>
+      <a href="#">Contact</a>
+    </div>
+  </div>
+
+  <div id="loader" class="loader-overlay">
+    <div class="loader"></div>
+  </div>
+
+  <script type="module">
+    import { openNav, closeNav } from './assets/sidemenu/sidemenu.js';
+    window.openNav = openNav;
+    window.closeNav = closeNav;
+  </script>
+  <!-- overlay -->
+  <div id="infoSheet" class="sheet">
+    <button id="closeSheet" aria-label="Close">✕</button>
+    <div id="sheetContent"></div>
+  </div>
+
+  <script type="module">
+    import { showLoader } from './assets/loader/loader.js';
+
+    // Make it usable in inline onclick handlers
+    window.showLoader = showLoader;
+  </script>
+
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.112/Build/Cesium/Cesium.js"></script>
+  <script type="module">
+    import { showLoader } from './assets/loader/loader.js';
+    window.showLoader = showLoader;
+    import { marsLabels_2 as marsLabels } from './assets/marsLabels_2.js';
+    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3OWY2YTM5OS05MzRhLTRjYjUtOGIzNS04NGFhOWQ5NzkxNzkiLCJpZCI6MzA3MTQzLCJpYXQiOjE3NDg0Mzc2Njh9.-Ht_KaU6h829k1UDY8jwzu2o5KyUO7PTzC-biOQMJHU';
+    const marsEllipsoid = new Cesium.Ellipsoid(3396190.0, 3396190.0, 3396190.0);
+    Cesium.Ellipsoid.WGS84 = marsEllipsoid;
+    let currentBaseMap = "tiles"; 
+        
+    const viewer = window.viewer = new Cesium.Viewer('cesiumContainer', {
+      imageryProvider: false,
+      baseLayerPicker: false,
+      geocoder: false,
+      timeline: false,
+      animation: false,
+      infoBox: false,
+      navigationHelpButton: false,
+      homeButton: false,
+      sceneModePicker: true,
+      fullscreenButton: false,
+      shouldAnimate: true,
+      automaticallyTrackDataSourceClocks: false,
+      globe: new Cesium.Globe(marsEllipsoid),
+      sceneMode: Cesium.SceneMode.SCENE3D
+    });
+    viewer.scene.skyAtmosphere.show = false;  // disables the blue glow
+    viewer.scene.globe.enableLighting = false;  // disables sun-based lighting effects
+    viewer.scene.globe.baseColor = Cesium.Color.BLACK;
+    viewer.scene.fog.enabled = false;                // Distance fog (white fade)
+    viewer._cesiumWidget._creditContainer.style.display = "none";
+    viewer.scene.globe.depthTestAgainstTerrain = false;
+
+    
+    //const testOverlay = new Cesium.SingleTileImageryProvider({
+    //url: 'https://pub-a37b0d1a11e34f5781e5abc040e1eef8.r2.dev/Basemap_seamless-2-ref.png',
+    //rectangle: Cesium.Rectangle.fromDegrees(-180, -90, 180, 90)  // entire planet
+    //});
+    //viewer.imageryLayers.addImageryProvider(testOverlay);
+    
+    const leftMarsTiles = new Cesium.UrlTemplateImageryProvider({
+      url: "https://pub-a37b0d1a11e34f5781e5abc040e1eef8.r2.dev/left-tiles/{z}/{x}/{y}.png",
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      rectangle: Cesium.Rectangle.fromDegrees(-180, -90,   0, 90),
+      maximumLevel: 7
+    });
+    viewer.imageryLayers.addImageryProvider(leftMarsTiles);
+
+    const rightmarsTiles = new Cesium.UrlTemplateImageryProvider({
+      url: 'https://pub-a37b0d1a11e34f5781e5abc040e1eef8.r2.dev/right-tiles/{z}/{x}/{y}.png',
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      rectangle: Cesium.Rectangle.fromDegrees(0, -90, 180, 90),
+      maximumLevel: 7
+    });
+    viewer.imageryLayers.addImageryProvider(rightmarsTiles);
+
+    viewer.selectionIndicator.viewModel.imageUrl = ('assets/selectionicon.svg');
+    viewer.selectionIndicator.viewModel.update();
+    
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(
+        -60.0,   // longitude (°E; negative = west)
+        20.0,   // latitude (°N)
+      10000000.0  // altitude in meters (smaller = “zoomed in”)
+      )
+    });
+
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(-135, 18, 200000),  // Olympus Mons
+        orientation: {
+          heading: Cesium.Math.toRadians(0),
+          roll: 0.0,
+        },
+      });
+    
+    // Enable gentle auto-rotation
+    viewer.clock.shouldAnimate = true;
+    viewer.clock.multiplier = 0.1;
+
+/*------------------LABELS--------------------------------------------------------------*/
+    const labelFonts = {
+      primary:   "24px MarsFont",
+      secondary: "16px MarsFont",
+      tertiary:  "12px MarsFont"
+    };
+    const NEAR_DIST   = 5e6;    // 2 000 km away → full size
+    const FAR_DIST    = 15e6;   // 15 000 km away → small size
+    const NEAR_SCALE  = 1.0;    // 100% of your font size
+    const FAR_SCALE   = 0.4;    // 40% of your font size
+    const labelScale = new Cesium.NearFarScalar(
+      NEAR_DIST, NEAR_SCALE,
+      FAR_DIST,  FAR_SCALE
+    );
+    const entityMap = {};
+    marsLabels.forEach(site => {
+      const font = labelFonts[site.importance] || labelFonts.secondary;
+
+      const ent = viewer.entities.add({
+        id: site.name,
+        name: site.name,
+        position: Cesium.Cartesian3.fromDegrees(site.lon, site.lat,0,marsEllipsoid),
+        label: {
+          text: site.name,
+          font: font,
+          fillColor: Cesium.Color.WHITE,
+          outlineColor: Cesium.Color.WHITE,
+          outlineWidth: 0.5,
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+          heightReference: Cesium.HeightReference.none,
+          scaleByDistance: labelScale
+        },
+        properties : {             // ← arbitrary JSON goes here
+          blurb : site.blurb,
+          img   : site.img,
+          isPOI : true
+        }
+
+      });
+      entityMap[site.name] = ent;
+    });
+
+/*-------------------------Equirectangular imagery ------------------------------------------*/
+    const equirect_left = new Cesium.UrlTemplateImageryProvider({
+      url: "https://pub-22a871f3a56343629903bf2e2eae5798.r2.dev/left-tiles/{z}/{x}/{y}.png",
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      rectangle: Cesium.Rectangle.fromDegrees(-180, -90,   0, 90),
+      maximumLevel: 5
+    });
+    const equirect_right = new Cesium.UrlTemplateImageryProvider({
+      url: "https://pub-22a871f3a56343629903bf2e2eae5798.r2.dev/right-tiles/{z}/{x}/{y}.png",
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      rectangle: Cesium.Rectangle.fromDegrees(0, -90, 180, 90),
+      maximumLevel: 5
+    });
+    // Function to switch imagery
+    function switchImagery(type) {
+      const imageryLayer = viewer.imageryLayers;
+      const loader = document.getElementById("loader");
+      // Remove previous imagery
+      for (let i = viewer.imageryLayers.length - 1; i >= 0; i--) {
+        const layer = viewer.imageryLayers.get(i);
+        // UrlTemplateImageryProvider = your tiles/quads
+        if (layer.imageryProvider instanceof Cesium.UrlTemplateImageryProvider) {
+          viewer.imageryLayers.remove(layer);
+        }
+      }
+      // Add imagery based on selection
+      if (type === "tiles") {
+        imageryLayer.addImageryProvider(leftMarsTiles);
+        imageryLayer.addImageryProvider(rightmarsTiles);
+      } else if (type === "quadrangles") {
+        imageryLayer.addImageryProvider(equirect_left);
+        imageryLayer.addImageryProvider(equirect_right);
+      }
+      if (overlayLayer) {
+       viewer.imageryLayers.raiseToTop(overlayLayer);
+      }
+    }
+    window.switchImagery = switchImagery;
+
+/*--------------------------------OVERLAYS------------------------------------------------*/
+    let overlayLayer = null;
+    function toggleOverlay(type) {
+      
+      // Remove previous overlay if any
+      if (overlayLayer) {
+        viewer.imageryLayers.remove(overlayLayer, false); // false = don't destroy the provider
+        overlayLayer = null;
+      }
+      const topIndex = viewer.imageryLayers.length;
+      let overlayUrl;
+
+      if (type === "relief") {
+        overlayUrl = "https://pub-142f2906f8b64d03a6500edf48318af3.r2.dev/relief.png";
+      } /*else if (type === "temperature") {
+        overlayUrl = "https://your-cdn/r2/overlays/infrared.png"; // replace this
+      }*/
+
+      if (overlayUrl) {
+        overlayLayer = viewer.imageryLayers.addImageryProvider(
+          new Cesium.SingleTileImageryProvider({
+            url: overlayUrl,
+            rectangle: Cesium.Rectangle.fromDegrees(-180, -90, 180, 90)
+          }),
+          topIndex
+        );
+        overlayLayer.alpha = 0.4; // ← This controls the blend
+          if (overlayLayer) {
+            viewer.imageryLayers.raiseToTop(overlayLayer);
+          }
+      }
+    }
+        
+/* ─── Sheet logic ─────────────────────────────────────────────────── */
+    const sheet        = document.getElementById("infoSheet");
+    const sheetContent = document.getElementById("sheetContent");
+    document.getElementById("closeSheet").onclick = hideSheet;
+
+    function showSheet () { sheet.classList.add("sheet--visible"); }
+    function hideSheet () { sheet.classList.remove("sheet--visible"); }
+
+
+    /* show sheet when a *label* (or any entity) is clicked */
+    const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+
+    handler.setInputAction(movement => {
+      const picked = viewer.scene.pick(movement.position);
+
+      /* background click → close */
+      if (!picked?.id || !picked.id.label) { hideSheet(); return; }
+
+      const entity = picked.id;
+      hideSheet();   // ensure clean state
+
+      const offset = new Cesium.HeadingPitchRange(
+        0, Cesium.Math.toRadians(-90), 900_000);
+
+      viewer.flyTo(entity, { offset, duration:2 }).then(() => {
+        const title = entity.name;
+        const blurb = entity.properties?.blurb?.getValue() ?? "";
+        const img   = entity.properties?.img  ?.getValue();
+
+        sheetContent.innerHTML = `
+          <h2 style="margin:0 0 1rem">${title}</h2>
+          ${img ? `<img src="${img}" style="max-width:100%;border-radius:8px">` : ""}
+          <p>${blurb}</p>`;
+        showSheet();
+      });
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    /* Esc key closes the panel */
+    window.addEventListener("keydown", e => {
+      if (e.key === "Escape") hideSheet();
+    });
+
+    window.toggleOverlay = toggleOverlay; //call overlay
+
+/*------------------------SEARCHING BAR --------------------------------*/
+    const searchInput   = document.getElementById("searchInput");
+    const searchResults = document.getElementById("searchResults");
+    const names         = Object.keys(entityMap);
+
+    // run on every keystroke
+    searchInput.addEventListener("input", () => {
+      const q = searchInput.value.trim().toLowerCase();
+      const matches = q
+        ? names.filter(n => n.toLowerCase().includes(q))
+        : [];
+
+      // clear old results
+      searchResults.innerHTML = "";
+
+      if (!q) return;                // no dropdown if they haven’t typed
+      if (matches.length === 0) {
+        const no = document.createElement("div");
+        no.className = "no-result";
+        no.textContent = "No results";
+        searchResults.appendChild(no);
+        return;
+      }
+
+      // build a result item for each match
+      matches.forEach(name => {
+        const item = document.createElement("div");
+        item.className = "search-item";
+        item.textContent = name;
+        item.onclick = () => {
+          // take their pick
+          searchInput.value = name;
+          searchResults.innerHTML = "";
+
+          // flyTo + open sheet (reuse your existing handlers)
+          const ent = entityMap[name];
+          viewer.flyTo(ent, {
+            offset: new Cesium.HeadingPitchRange(
+              0, Cesium.Math.toRadians(-90), 900_000
+            ),
+            duration: 2
+          }).then(() => {
+            // you already have code to open the sheet by picking,
+            // so just mimic what happens on click:
+            const title = ent.name;
+            const blurb = ent.properties.blurb.getValue();
+            const img   = ent.properties.img.getValue();
+            sheetContent.innerHTML = `
+              <h2 style="margin:0 0 1rem">${title}</h2>
+              ${img ? `<img src="${img}" style="max-width:100%;border-radius:8px">` : ""}
+              <p>${blurb}</p>`;
+            showSheet();
+          });
+        };
+        searchResults.appendChild(item);
+      });
+    });
+
+
+
+
+
+  </script>
+
+</body>
+</html>
+

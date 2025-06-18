@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Emirates Mars Mission Globe</title>
+
+  <!-- Cesium CSS -->
+  <link rel="stylesheet"
+        href="https://cesium.com/downloads/cesiumjs/releases/1.112/Build/Cesium/Widgets/widgets.css">
+
+  <!-- Font -->
+  <link rel="preload" href="custom-fonts/CaviarDreams.ttf"
+        as="font" type="font/ttf" crossorigin="anonymous">
+
+  <style>
+  /* ---------- custom font ---------- */
+  @font-face {
+    font-family: MarsFont;
+    src: url("custom-fonts/Mont-ExtraLightDEMO.otf") format("truetype");
+  }
+
+  /* ---------- layout ---------- */
+  html, body, #cesiumContainer {
+    width:100%; height:100%; margin:0; overflow:hidden;
+    font-family:MarsFont, sans-serif;
+  }
+  #cesiumContainer { position:absolute; inset:0; }
+
+  .top-left-button {
+    position:absolute; top:1rem; left:1rem; z-index:1000;
+  }
+  .top-left-button img { width:170px; height:auto; display:block; }
+
+  /* ---------- selection indicator tweak ---------- */
+  .cesium-selection-wrapper svg { fill:rgba(255,255,255,.7); }
+
+  /* ---------- INFO SHEET ---------- */
+  .sheet {
+    position:absolute; inset:0; display:flex;
+    align-items:center; justify-content:center;
+    padding:2rem; box-sizing:border-box;
+    background:rgba(0,0,0,.75); color:#fff;
+    z-index:9999;
+
+    /* hidden by default */
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .25s ease;
+  }
+  .sheet--visible {
+    opacity:1; visibility:visible; pointer-events:auto;
+  }
+  #sheetContent { max-width:600px; text-align:center; }
+
+  #closeSheet {
+    position:absolute; top:1rem; right:1rem;
+    background:none; border:none; color:#fff;
+    font-size:2rem; cursor:pointer;
+  }
+  #closeSheet:hover { opacity:.7; }
+  </style>
+</head>
+<body>
+
+  <!-- logo -->
+  <a href="index.html" class="top-left-button">
+    <img src="images/CASS+logo+horizontal-white.png" alt="Go back home">
+  </a>
+
+  <!-- Cesium canvas -->
+  <div id="cesiumContainer"></div>
+
+  <!-- overlay -->
+  <div id="infoSheet" class="sheet">
+    <button id="closeSheet" aria-label="Close">✕</button>
+    <div id="sheetContent"></div>
+  </div>
+
+  <!-- Cesium JS -->
+  <script
+    src="https://cesium.com/downloads/cesiumjs/releases/1.112/Build/Cesium/Cesium.js">
+  </script>
+
+  <script>
+  /* ---------- globe setup ---------- */
+  Cesium.Ion.defaultAccessToken = 'YOUR_TOKEN_HERE';
+
+  const marsEllipsoid = new Cesium.Ellipsoid(3396190, 3396190, 3396190);
+
+  const viewer = new Cesium.Viewer("cesiumContainer", {
+    imageryProvider   : false,
+    baseLayerPicker   : false,
+    geocoder          : false,
+    timeline          : false,
+    animation         : false,
+    infoBox           : false,
+    navigationHelpButton:false,
+    homeButton        : false,
+    sceneModePicker   : false,
+    fullscreenButton  : false,
+    globe             : new Cesium.Globe(marsEllipsoid)
+  });
+  viewer.scene.skyAtmosphere.show = false;
+  viewer.scene.globe.enableLighting = false;
+  viewer.scene.globe.depthTestAgainstTerrain = false;
+  viewer._cesiumWidget._creditContainer.style.display = "none";
+
+  /* ---------- imagery ---------- */
+  const leftTiles  = new Cesium.UrlTemplateImageryProvider({
+    url:'images/left-tiles/{z}/{x}/{y}.png',
+    tilingScheme:new Cesium.GeographicTilingScheme({ellipsoid:marsEllipsoid}),
+    rectangle:Cesium.Rectangle.fromDegrees(-180,-90,0,90), maximumLevel:7
+  });
+  const rightTiles = new Cesium.UrlTemplateImageryProvider({
+    url:'images/right-tiles/{z}/{x}/{y}.png',
+    tilingScheme:new Cesium.GeographicTilingScheme({ellipsoid:marsEllipsoid}),
+    rectangle:Cesium.Rectangle.fromDegrees(0,-90,180,90), maximumLevel:7
+  });
+  viewer.imageryLayers.addImageryProvider(leftTiles);
+  viewer.imageryLayers.addImageryProvider(rightTiles);
+
+  viewer.camera.setView({
+    destination: Cesium.Cartesian3.fromDegrees(-60, 20, 10_000_000, marsEllipsoid),
+    orientation:{ heading:0, pitch:Cesium.Math.toRadians(-90), roll:0 }
+  });
+
+  /* ---------- labels ---------- */
+  const marsLabels = [
+    { name:"OLYMPUS MONS",  lon:-134.5, lat:18.65,
+      blurb:"Highest mountain…", img:"images/olympus.png" },
+    { name:"VALLES MARINERIS", lon:-60, lat:-14 },
+    { name:"GALE CRATER",      lon:137.4, lat:-4.6 },
+    { name:"JEZERO CRATER",    lon:77.6,  lat:18.4 }
+  ];
+
+  marsLabels.forEach(poi => {
+    viewer.entities.add({
+      name: poi.name,
+      position: Cesium.Cartesian3.fromDegrees(poi.lon, poi.lat, 0, marsEllipsoid),
+      label : {
+        text:poi.name, font:"18px MarsFont",
+        fillColor:Cesium.Color.WHITE,
+        outlineColor:Cesium.Color.BLACK, outlineWidth:1,
+        style:Cesium.LabelStyle.FILL_AND_OUTLINE,
+        verticalOrigin:Cesium.VerticalOrigin.BOTTOM,
+        heightReference:Cesium.HeightReference.CLAMP_TO_GROUND
+      },
+      properties:{ blurb:poi.blurb, img:poi.img }
+    });
+  });
+
+  /* ---------- sheet helpers ---------- */
+  const sheet        = document.getElementById("infoSheet");
+  const sheetContent = document.getElementById("sheetContent");
+  document.getElementById("closeSheet").onclick = hideSheet;
+
+  function showSheet () { sheet.classList.add("sheet--visible"); }
+  function hideSheet () { sheet.classList.remove("sheet--visible"); }
+
+  /* ---------- click logic ---------- */
+  const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+
+  handler.setInputAction(movement => {
+    const picked = viewer.scene.pick(movement.position);
+
+    /* background click → close */
+    if (!picked?.id || !picked.id.label) { hideSheet(); return; }
+
+    const entity = picked.id;
+    hideSheet();   // ensure clean state
+
+    const offset = new Cesium.HeadingPitchRange(
+      0, Cesium.Math.toRadians(-45), 600_000);
+
+    viewer.flyTo(entity, { offset, duration:2 }).then(() => {
+      const title = entity.name;
+      const blurb = entity.properties?.blurb?.getValue() ?? "";
+      const img   = entity.properties?.img  ?.getValue();
+
+      sheetContent.innerHTML = `
+        <h2 style="margin:0 0 1rem">${title}</h2>
+        ${img ? `<img src="${img}" style="max-width:100%;border-radius:8px">` : ""}
+        <p>${blurb}</p>`;
+      showSheet();
+    });
+  }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+  /* Esc key closes the panel */
+  window.addEventListener("keydown", e => {
+    if (e.key === "Escape") hideSheet();
+  });
+  </script>
+</body>
+</html>

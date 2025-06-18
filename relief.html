@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+
+  <title>Emirates Mars Mission Globe</title>
+  <link rel="stylesheet" href="./assets/sidemenu/sidemenu.css">
+  <link rel="stylesheet" href="./assets/loader/loader.css">
+  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.112/Build/Cesium/Widgets/widgets.css">
+  <link rel="preload" href="custom-fonts/CaviarDreams.ttf" as="font" type="font/ttf" crossorigin="anonymous">
+  <link rel="stylesheet" href="assets/dropdown/dropdown.css">
+  <style>
+    @font-face {
+      font-family: 'MarsFont';
+      src: url('custom-fonts/Mont-ExtraLightDEMO.otf') format('truetype');
+    }
+
+    html, body, #cesiumContainer {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: 'MarsFont', sans-serif;
+    }
+
+    #cesiumContainer {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+    /* Position your clickable image in the top-left, above Cesium */
+    .top-left-button {
+      position: absolute;
+      top: 1rem;   /* you can tweak these offsets */
+      left: 1rem;
+      z-index: 1000;  /* anything above Cesium (Cesium’s default z-index is 0) */
+      max-width: 40vw; /* never exceed 40% of viewport width */
+      height: auto;
+    }
+    .top-left-button img {
+      cursor: pointer;
+      display: block;
+      width: 170px; /* or whatever size your logo is */
+      height: auto;
+    }
+    .some-panel {
+      padding: 1rem;
+      margin: 0 auto;
+      max-width: 90%;
+    }
+    .cesium-selection-wrapper {
+      position: absolute;
+      width: 160px;
+      height: 160px;
+      pointer-events: none;
+      visibility: hidden;
+      opacity: 0;
+      transition: visibility 0s 0.2s, opacity 0.2s ease-in;
+    }
+    .cesium-selection-wrapper-visible {
+      visibility: visible;
+      opacity: 1;
+      transition: opacity 0.2s ease-out;
+    }
+    .cesium-selection-wrapper svg {
+      fill: rgba(255, 255, 255, 0.686);
+      stroke: none;
+    }
+    #sheet-overlay{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.7);
+      display:none;                 /* toggled by JS */
+      align-items:center;           /* centre on screen */
+      justify-content:center;
+      z-index:9999;
+    }
+
+    #sheet{
+      width:95vw; height:90vh;      /* almost full-screen */
+      background:#000000;
+      border-radius:16px;
+      overflow:hidden;              /* mask rounded corners */
+      position:relative;
+      box-shadow:0 4px 20px rgba(0,0,0,.25);
+      transform:scale(.8); opacity:0;
+      transition:.25s ease;
+    }
+    #sheet.open{ transform:scale(1); opacity:1; }
+
+    #img-wrapper {
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      touch-action:none;     /* needed for gestures on mobile */
+      cursor: grab;
+    }
+    #img-wrapper:active { cursor: grabbing; }
+     
+    #sheet-img{              /* image keeps intrinsic ratio       */
+      width: 100%; height: 100%;
+      user-select: none;
+      touch-action: none;
+      object-fit: contain;
+      cursor: grab;
+    }
+
+    #close-sheet{
+      position:absolute; top:8px; right:12px;
+      background:none; border:0; font-size:2rem;
+      line-height:1; cursor:pointer;
+      z-index:10;
+      color: WHITE;
+    }
+    .loader-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.75);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+  </style>
+  
+</head>
+<body>
+  <a href="index.html" class="top-left-button" onclick="showLoader(event, 'index.html')">
+    <img
+      src="https://pub-a37b0d1a11e34f5781e5abc040e1eef8.r2.dev/CASS%2Blogo%2Bhorizontal-white.png"
+      alt="Go back home"
+      style="height:auto; display:block;"
+    />
+  </a>
+
+  <div id="cesiumContainer"></div>
+
+  <span onclick="openNav()" class="menu-btn">&#9776;</span>
+
+  <div id="myNav" class="overlay">
+    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+    <div class="overlay-content">
+      <a href="index.html" onclick="showLoader(event, 'index.html')">Home</a>
+      <a href="labeled_map.html"  onclick="showLoader(event, 'labeled_map.html')">Maps</a>
+      <a href="#">Team</a>
+      <a href="#">Contact</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { openNav, closeNav } from './assets/sidemenu/sidemenu.js';
+    window.openNav = openNav;
+    window.closeNav = closeNav;
+  </script>
+
+  <script src="https://unpkg.com/panzoom@9.4.0/dist/panzoom.min.js"></script>
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.112/Build/Cesium/Cesium.js"></script>
+  <script type="module">
+    import { initDropdown } from './assets/dropdown/dropdown.js';
+    initDropdown();                           // same dropdown setup
+
+    const overlay = document.getElementById('sheet-overlay');
+    const sheet   = document.getElementById('sheet');
+    const imgBox  = document.getElementById('sheet-img');
+    let pz;                                    // Panzoom instance
+
+
+  </script>
+
+
+  <script>
+    async function startCesium() {
+      Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3OWY2YTM5OS05MzRhLTRjYjUtOGIzNS04NGFhOWQ5NzkxNzkiLCJpZCI6MzA3MTQzLCJpYXQiOjE3NDg0Mzc2Njh9.-Ht_KaU6h829k1UDY8jwzu2o5KyUO7PTzC-biOQMJHU';
+      const marsEllipsoid = new Cesium.Ellipsoid(3396190.0, 3396190.0, 3396190.0);
+      Cesium.Ellipsoid.WGS84 = marsEllipsoid;
+
+      const viewer = new Cesium.Viewer('cesiumContainer', {
+        imageryProvider: false,
+        baseLayerPicker: false,
+        geocoder: false,
+        timeline: false,
+        animation: false,
+        infoBox: false,
+        navigationHelpButton: false,
+        homeButton: false,
+        sceneModePicker: false,
+        fullscreenButton: false,
+        shouldAnimate: true,
+        automaticallyTrackDataSourceClocks: false,
+        globe: new Cesium.Globe(marsEllipsoid),
+        terrainProvider: await Cesium.CesiumTerrainProvider.fromIonAssetId(3450135),
+      });
+      viewer.scene.globe._surface._debug.wireframe = true;
+      viewer.scene.skyAtmosphere.show = false;
+      viewer.scene.globe.enableLighting = false;
+      viewer.scene.fog.enabled = false;
+      viewer._cesiumWidget._creditContainer.style.display = "none";
+      viewer.scene.globe.depthTestAgainstTerrain = false;
+
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(-60, 20, 10000000)
+      });
+
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(-135, 18, 200000),  // Olympus Mons
+        orientation: {
+          heading: Cesium.Math.toRadians(0),
+          roll: 0.0,
+        },
+      });
+      // Optional imagery overlay
+      const testOverlay = new Cesium.SingleTileImageryProvider({
+        url: 'https://pub-142f2906f8b64d03a6500edf48318af3.r2.dev/relief.png',
+        rectangle: Cesium.Rectangle.fromDegrees(-180, -90, 180, 90)
+      });
+      viewer.imageryLayers.addImageryProvider(testOverlay);
+    }
+    startCesium();  
+
+    // Enable gentle auto-rotation
+    viewer.clock.shouldAnimate = true;
+    viewer.clock.multiplier = 0.1;
+    
+  </script>
+
+
+  <div id="loader" class="loader-overlay">
+    <div class="loader"></div>
+  </div>
+  <script type="module">
+    import { showLoader } from './assets/loader/loader.js';
+
+    // Make it usable in inline onclick handlers
+    window.showLoader = showLoader;
+  </script>
+</body>
+</html>
