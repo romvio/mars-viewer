@@ -111,7 +111,19 @@
     .sheet--visible {
     opacity:1; visibility:visible; pointer-events:auto;
     }
-    #sheetContent { max-width:600px; text-align:center; }
+    #sheetContent { max-width:none !important; width: auto; text-align:center;  max-height: 80vh;       /* restricts height */
+    overflow-y: auto;       /* enables scrolling */
+    padding: 1rem;
+    background: rgba(0,0,0,0.6);
+    border-radius: 1rem;
+    }
+    #sheetContent::-webkit-scrollbar {
+      width: 8px;
+    }
+    #sheetContent::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.4);
+      border-radius: 4px;
+    }
 
     #closeSheet {
       position:absolute; top:1rem; right:1rem;
@@ -283,8 +295,15 @@
     const labelFonts = {
       primary:   "24px MarsFont",
       secondary: "16px MarsFont",
-      tertiary:  "12px MarsFont"
+      tertiary:  "12px MarsFont",
+      quadrangle: "24px MarsFont"
     };
+    const labelColors ={
+      primary: Cesium.Color.WHITE,
+      secondary: Cesium.Color.WHITE,
+      tertiary:  Cesium.Color.WHITE,
+      quadrangle: Cesium.Color.YELLOW
+    }
     const NEAR_DIST   = 5e6;    // 2 000 km away → full size
     const FAR_DIST    = 15e6;   // 15 000 km away → small size
     const NEAR_SCALE  = 1.0;    // 100% of your font size
@@ -296,6 +315,7 @@
     const entityMap = {};
     marsLabels.forEach(site => {
       const font = labelFonts[site.importance] || labelFonts.secondary;
+      const color = labelColors[site.importance] || Cesium.Color.WHITE;
 
       const ent = viewer.entities.add({
         id: site.name,
@@ -304,7 +324,7 @@
         label: {
           text: site.name,
           font: font,
-          fillColor: Cesium.Color.WHITE,
+          fillColor: color,
           outlineColor: Cesium.Color.WHITE,
           outlineWidth: 0.5,
           style: Cesium.LabelStyle.FILL_AND_OUTLINE,
@@ -317,7 +337,6 @@
           img   : site.img,
           isPOI : true
         }
-
       });
       entityMap[site.name] = ent;
     });
@@ -424,9 +443,13 @@
         const img   = entity.properties?.img  ?.getValue();
 
         sheetContent.innerHTML = `
-          <h2 style="margin:0 0 1rem">${title}</h2>
-          ${img ? `<img src="${img}" style="max-width:100%;border-radius:8px">` : ""}
-          <p>${blurb}</p>`;
+          <div style="max-width: 100%; display: flex; flex-direction: column; align-items: center;">
+            <h2 style="margin: 0 0 1rem;">${title}</h2>
+            ${img ? `<img src="${img}" style="width: 220px; max-width: 220px; height: auto; border-radius: 8px; margin-bottom: 1rem; display: block !important;">` : ""}
+            <p style="text-align: justify; line-height: 1.5; max-height: 50vh; overflow-y: auto;">${blurb}</p>
+          </div>
+        `;
+
         showSheet();
       });
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
@@ -486,9 +509,12 @@
             const blurb = ent.properties.blurb.getValue();
             const img   = ent.properties.img.getValue();
             sheetContent.innerHTML = `
-              <h2 style="margin:0 0 1rem">${title}</h2>
-              ${img ? `<img src="${img}" style="max-width:100%;border-radius:8px">` : ""}
-              <p>${blurb}</p>`;
+              <div style="max-width: 100%; display: flex; flex-direction: column; align-items: center;">
+                <h2 style="margin: 0 0 1rem;">${title}</h2>
+                ${img ? `<img src="${img}" style="width: 120px; max-width: 120px; height: auto; border-radius: 8px; margin-bottom: 1rem; display: block !important;">` : ""}
+                <p style="text-align: justify; line-height: 1.5; max-height: 50vh; overflow-y: auto;">${blurb}</p>
+              </div>
+            `;
             showSheet();
           });
         };
