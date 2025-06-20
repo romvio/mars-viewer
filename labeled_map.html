@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -98,6 +99,12 @@
       box-shadow:0 4px 20px rgba(0,0,0,.25);
       transform:scale(.8); opacity:0;
       transition:.25s ease;
+      z-index: 2;
+    }
+    #sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
     }
     #sheet.open{ transform:scale(1); opacity:1; }
 
@@ -161,14 +168,16 @@
         <a href="#mollweide" class="map-item" data-img="https://pub-28b3630245924986a4bf3fd9cea2c93d.r2.dev/mollweide.png">Mollweide Map</a>
       </div>
     </div>
-  <div id="sheet-overlay">
-    <div id="sheet">
-      <button id="close-sheet">×</button>
-      <div id="img-wrapper">
-        <img id="sheet-img" src="" alt="Map preview">
+    <div id="sheet-overlay">
+      <div id="sheet-backdrop" onclick="closeSheet()"></div>
+      <div id="sheet">
+        <button id="close-sheet">×</button>
+        <div id="img-wrapper">
+          <img id="sheet-img" src="" alt="Map preview">
+        </div>
       </div>
     </div>
-  </div>
+
 
     <span onclick="openNav()" class="menu-btn">&#9776;</span>
 
