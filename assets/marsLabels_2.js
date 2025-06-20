@@ -1,6 +1,3 @@
-/* Mars landmarks ─ you can feed this straight into Cesium
-   Example:  viewer.entities.add({ position: Cesium.Cartesian3.fromDegrees(f.lon, f.lat, 0), … })
-*/
 export const marsLabels_2= [
   {
     name : "Olympus Mons",
@@ -61,9 +58,9 @@ export const marsLabels_2= [
   /* ─── Arabia Quadrangle ───────────────────────────────────────────── */
   {
     name : "Schiaparelli Crater",
-    lon  :  -16.00,
+    lon  :  17.00,
     lat  :   -3.00,
-    importance: "tertiary",
+    importance: "secondary",
     blurb: "Schiaparelli is an impact crater with a diameter of about 460 km. It was named after Italian astronomer Giovanni Schiaparelli who is known for his telescopic observations of Mars in the 19th and 20th centuries. A crater within this region has many thick layers that may have formed by the wind, volcanoes, or deposition under water.",
     img  : "images/8.jpg"
   },
@@ -110,8 +107,8 @@ export const marsLabels_2= [
   },
   {
     name : "Jezero Crater",
-    lon  :   77.52,
-    lat  :   18.86,
+    lon  :   78.0,
+    lat  :   18.46,
     importance: "secondary",
     blurb: "Jezero crater has a diameter of 45 km. The crater features a fan-delta deposit rich in clays, which is believed to have once been flooded with water. The crater has a delta, as well as point bars and inverted channels. The lake inside the crater was most likely produced during a time of continuous surface runoff, according to a study of the delta and channels. The crater is also the landing site of the Mars 2020 “Perseverance” rover, operating since February 2021.",
     img  : "images/14.jpg"
@@ -158,7 +155,7 @@ export const marsLabels_2= [
     img  : "images/19.jpg"
   },
   {
-    name : "Graniculus Valles",
+    name : "Granicus Valles",
     lon  :  131.00,
     lat  :   30.00,
     importance: "tertiary",
@@ -179,15 +176,15 @@ export const marsLabels_2= [
     lon  :  156.90,
     lat  :  -19.50,
     importance: "tertiary",
-    blurb: "Hadley is an impact crater onMars, located in the Aeolis Quadrangle and is part of TerraCimmeria.It has a diameter of119 kilometres and was named after George Hadley, a Britishmeteorologist.",
+    blurb: "Hadley is an impact crater onMars, located in the Aeolis Quadrangle and is part of Terra Cimmeria.It has a diameter of119 kilometres and was named after George Hadley, a British meteorologist.",
     img  : "images/22.jpg"
   },
   {
     name : "Zunil Crater",
-    lon  :  169.20,
-    lat  :    8.90,
+    lon  :  170.0,
+    lat  :    8.45,
     importance: "tertiary",
-    blurb: "Zunil, a 10.26 km-wide impact crateron Mars near the CerberusFossae in Elysium quadrangle. It is named after the Guatemalan Town of Zunil. The crater is still in good condition considering it was formed by an impact that happened just a few million years ago. It was most likely not created by a high-velocity impact, such as one caused bya comet. It is believed that Zunil is the source of the basaltic shergottite meteorites, and according to this theory, the crater was formed in basalt that was deposited between 165 and 177 million years ago.",
+    blurb: "Zunil, a 10.26 km-wide impact crateron Mars near the Cerberus Fossae in Elysium quadrangle. It is named after the Guatemalan Town of Zunil. The crater is still in good condition considering it was formed by an impact that happened just a few million years ago. It was most likely not created by a high-velocity impact, such as one caused by a comet. It is believed that Zunil is the source of the basaltic shergottite meteorites, and according to this theory, the crater was formed in basalt that was deposited between 165 and 177 million years ago.",
     img  : "images/23.jpg"
   },
   {
@@ -250,8 +247,8 @@ export const marsLabels_2= [
   },
   {
     name : "Ius Chasma",
-    lon  : 270,
-    lat  : -8,
+    lon  : 278,
+    lat  : -10,
     importance: "secondary",
     blurb: "Ius Chasma is a canyon in the Coprates quadrangle. With its length of 938 km, it belongs to one of the largest canyons in Valles Marineris. Formation of the canyon was afected by a process known as sapping. During sapping the water leaking down the clifs evaporates before it reaches the bottom of the canyon. Ius Chasma was also shaped by avalanches, faulting, and grabens.",
     img  : "images/31.jpg"
@@ -274,7 +271,7 @@ export const marsLabels_2= [
   },
   {
     name : "Hebes Chasma",
-    lon  : 285,
+    lon  : 283.5,
     lat  : -1,
     importance: "tertiary",
     blurb: "Hebes Chasma is around 319 km long and it is made unique by the presence Hebes Mensa. Located in the centre of the depression, Hebes Mensa is a massive mesa towering 5 kilometers above the valley foor.",
@@ -282,7 +279,7 @@ export const marsLabels_2= [
   },
   {
     name : "Ophir Chasma",
-    lon  : 290,
+    lon  : 287,
     lat  : -4,
     importance: "tertiary",
     blurb: "Ophir Chasma is a valley distinguished by its width and is located in the north of the centre of Valles Marineris. Ophir Chasma is around 317 km long.",
@@ -290,8 +287,8 @@ export const marsLabels_2= [
   },
   {
     name : "Candor Chasma",
-    lon  : 295,
-    lat  : -5,
+    lon  : 287,
+    lat  : -9,
     importance: "secondary",
     blurb: "Candor Chasma is one of the largest canyons in the Valles Marineris with its length of over 773 km. It is located in the centre and it is divided to East and West Candor Chasma.",
     img  : "images/36.jpg"
@@ -323,7 +320,7 @@ export const marsLabels_2= [
   {
     name : "Capri Chasma",
     lon  : 315,
-    lat  : -10,
+    lat  : -15,
     importance: "tertiary",
     blurb: "Capri Chasma is located on the east edge of Valles Marineris.",
     img  : "images/40.jpg"
@@ -458,7 +455,7 @@ export const marsLabels_2= [
   {
     name : "MARFARITIFER SINUS",
     lon  : -22,
-    lat  : 10,
+    lat  : -10,
     importance: "quadrangle",
     blurb: "Margaritifer Sinus quadrangle (MC-19) contains long lake-chain systems, deltas, and chasms shaped by water. It includes parts of Xanthe, Noachis, Arabia Terra, and Meridiani Planum.",
   },
