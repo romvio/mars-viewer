@@ -340,8 +340,8 @@
       const color = labelColors[site.importance] || Cesium.Color.WHITE;
       
         // 1) set the distance thresholds:
-        const fadeStart = 1_500_000.0; // fully opaque at ≤2 000 km
-        const fadeEnd   = 4_500_000.0; // fully transparent at ≥4 000 km
+        const fadeStart = 2_500_000.0; 
+        const fadeEnd   = 5_000_000.0; 
 
         const translucency = site.importance === 'quadrangle'
           ? undefined
