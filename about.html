@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="apple-touch-icon" sizes="180x180" href="favicon_io/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon_io/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon_io/favicon-16x16.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="stylesheet">
+  <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  
+  <title>Emirates Mars Mission Globe</title>
+  <link rel="stylesheet" href="./assets/sidemenu/sidemenu.css">
+  <link rel="stylesheet" href="./assets/loader/loader.css">
+  <link rel="stylesheet" href="./assets/search-bar/search-css.css">
+  <link rel="stylesheet" href="Cesium/Widgets/widgets.css">
+  <title>About - Atlas of Mars</title>
+  <style>
+    @font-face {
+      font-family: 'MarsFont';
+      src: url('custom-fonts/Mont-ExtraLightDEMO.otf') format('opentype');
+    }
+
+    body {
+      background-color: #0e0e0e;
+      color: white;
+      font-family: 'MarsFont', sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      padding: 4rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: #ff4d4d;
+    }
+
+    p {
+      font-size: 1.05rem;
+      margin-bottom: 1rem;
+    }
+
+    a {
+      color: #ffcc66;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    footer {
+      font-size: 0.85rem;
+      color: #ccc;
+      margin-top: 3rem;
+      border-top: 1px solid #333;
+      padding-top: 1rem;
+    }
+        .top-left-button {
+      position: absolute;
+      top: 1rem;   /* you can tweak these offsets */
+      left: 1rem;
+      z-index: 1000;  /* anything above Cesium (Cesium’s default z-index is 0) */
+      max-width: 40vw; /* never exceed 40% of viewport width */
+      height: auto;
+    }
+    .top-left-button img {
+      cursor: pointer;
+      display: block;
+      width: 170px; /* or whatever size your logo is */
+      height: auto;
+    }
+    .some-panel {
+      padding: 1rem;
+      margin: 0 auto;
+      max-width: 90%;
+    }
+    #close-sheet{
+      position:absolute; top:8px; right:12px;
+      background:none; border:0; font-size:2rem;
+      line-height:1; cursor:pointer;
+      z-index:10;
+      color: WHITE;
+    }
+    .loader-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.75);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .overlay-dropdown {
+    font-family: 'MarsFont', sans-serif;
+    font-size: 8px;
+    padding: 0.5rem 1rem;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    border: 1px solid white;
+    border-radius: 8px;
+  }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="top-left-button" onclick="showLoader(event, 'index.html')">
+    <img
+      src="assets/CASS+logo+horizontal-white.png"
+      alt="Go back home"
+      style="height:auto; display:block;"
+    />
+  </a>
+
+  <span onclick="openNav()" class="menu-btn">&#9776;</span>
+
+  <div id="myNav" class="overlay">
+    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+    <div class="overlay-content">
+      <a href="index.html" onclick="showLoader(event, 'index.html')">Home</a>
+      <a href="labeled_map.html"  onclick="showLoader(event, 'labeled_map.html')">Maps</a>    
+      <a href="relief.html"  onclick="showLoader(event, 'relief.html')">Relief</a>
+      <a href="about.html" onclick="showLoader(event, 'about.html')">About</a>
+    </div>
+  </div>
+
+  <div id="loader" class="loader-overlay">
+    <div class="loader"></div>
+  </div>
+
+  <script type="module">
+    import { openNav, closeNav } from './assets/sidemenu/sidemenu.js';
+    window.openNav = openNav;
+    window.closeNav = closeNav;
+  </script>
+
+  <script type="module">
+    import { showLoader } from './assets/loader/loader.js';
+
+    // Make it usable in inline onclick handlers
+    window.showLoader = showLoader;
+  </script>
+
+  <div class="container">
+    <h1>About the Atlas</h1>
+    <p>
+      <strong>The Atlas of Mars</strong> is a visual and scientific record of our neighboring planet, created entirely with images captured by the <strong>Emirates Mars Mission (EMM)</strong>, also known as <em>Hope (Al-Amal)</em>. This groundbreaking mission, launched on July 20, 2020, marked the Arab world's first interplanetary exploration.
+    </p>
+    <p>
+      Hope entered Mars orbit on February 9, 2021, and is equipped with advanced instruments that allow for unprecedented observation of the Martian atmosphere and surface. Its unique orbit enables it to scan the entire planet every 9–10 days, providing rich, full-disk views used in this atlas.
+    </p>
+    <p>
+      This web-based interactive version of the Atlas has been developed by the <strong>NYU Abu Dhabi Center for Space Science</strong> as part of the PPTP initiative. It brings together over 580 images captured by the Emirates eXploration Imager (EXI) between February and August 2021, stitched together using advanced mapping techniques including cylindrical and Robinson projections.
+    </p>
+    <p>
+      The atlas showcases labeled regions, major geological features, and stunning high-resolution photographs of Mars, some of which are being made publicly accessible for the first time. Our goal is to make Mars exploration intuitive, educational, and visually captivating.
+    </p>
+    <p>
+      This site will continue to evolve as the Hope mission provides more data. Stay curious — Mars still has many secrets waiting to be revealed.
+    </p>
+    <p>
+      For more information, please visit our <a href="https://marsatlas.org/" target="_blank">Mars Atlas Website</a>.
+    </p>
+    <footer>
+      Developed by NYUAD Research Assistants using data from the
+      <a href="https://sdc.emiratesmarsmission.ae" target="_blank">EMM Science Data Center</a>. Special thanks to the Emirates Mars Mission team and the 
+      <a href="https://marsatlas.org/" target="_blank">NYUAD Research Center Team</a>.
+    </footer>
+  </div>
+</body>
+</html>
