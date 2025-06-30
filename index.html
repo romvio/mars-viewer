@@ -502,6 +502,7 @@
     const DEFAULT_RATIO = 0.5;   // 50% VH normal
     const MIN_RATIO = 0.15;
     const handle = document.querySelector('.sheet__handle');
+    const closeBtn  = document.getElementById('closeSheet');
 
     document.getElementById("closeSheet").onclick = hideSheet;
 
@@ -570,8 +571,31 @@
           setTimeout(() => sheet.style.transition = '', 300);
         }
       });
+      
+      // 1) helper to collapse then hide
+      function collapseAndHide() {
+        // 1a) animate down to MIN_RATIO vh
+        sheet.style.height = window.innerHeight * MIN_RATIO + 'px';
+        // 1b) after your CSS height-transition (0.2s) runs, actually hide
+        setTimeout(hideSheet, 200);
+      }
 
+      // 2) wire your close button to collapseAndHide
+      closeBtn.removeEventListener('click', hideSheet);
+      closeBtn.addEventListener('click', e => {
+        e.stopPropagation();        // don’t bubble up as an “outside” click
+        collapseAndHide();
+      });
 
+      // 3) wire ANY click outside the sheet to do the same
+      document.addEventListener('click', e => {
+        if (
+          sheet.classList.contains('sheet--visible') &&  // only when open
+          !sheet.contains(e.target)                      // and click is outside
+        ) {
+          collapseAndHide();
+        }
+      });
 
 
     /* show sheet when a *label* (or any entity) is clicked */
@@ -686,4 +710,5 @@
 
 </body>
 </html>
+
 
