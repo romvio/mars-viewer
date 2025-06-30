@@ -118,6 +118,7 @@
       overflow: hidden;
       transform: translateY(100%);
       transition: transform .3s ease-out, height .2s ease-out;
+      touch-action: none;
       z-index: 10000;
     }
 
@@ -520,7 +521,7 @@
     let   wasDragged = false;
     let   startY, startH;
 
-      handle.addEventListener('pointerdown', e => {
+      sheet.addEventListener('pointerdown', e => {
         isDragging  = true;
         wasDragged  = false;
         startY  = e.clientY;
@@ -531,17 +532,16 @@
 
       function onDrag(e) {
         wasDragged = true;
-        const dy     = e.clientY - startY;
-        let   newH   = startH - dy;
+        const dy    = e.clientY - startY;
+        let   newH  = startH - dy;
 
-        // ----- compute minimum height: just enough to show the title -----
-        const header = sheet.querySelector('.sheet__text h2');
-
-        // clamp between min and your CSS max-height (90vh)
+        // clamp between your two limits
         const maxHpx = window.innerHeight * MAX_RATIO;
         const minHpx = window.innerHeight * MIN_RATIO;
         newH = Math.min(Math.max(newH, minHpx), maxHpx);
-        sheet.style.height = Math.min(Math.max(newH, minH), maxH) + 'px';
+
+        // apply the clamped height
+        sheet.style.height = newH + 'px';
       }
 
       function onStop() {
@@ -679,4 +679,3 @@
 
 </body>
 </html>
-
