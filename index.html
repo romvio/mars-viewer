@@ -109,28 +109,63 @@
 
     .sheet {
       position: absolute;
-      inset: 0;                       /* top 0 / right 0 / bottom 0 / left 0 */
-      background: rgba(0,0,0,0.75);   /* 75 % opacity */
-      color: #fff;
-      display: flex;                  /* show via JS */
-      align-items: center;            /* (flexbox) centre text block */
+      bottom: 0; left: 0; right: 0;
+      height: 50vh;          /* half the screen */
+      max-height: 90vh;
+      background: rgba(0,0,0,0.9);
+      border-top-left-radius: 12px;
+      border-top-right-radius: 12px;
+      overflow: hidden;
+      transform: translateY(100%);
+      transition: transform .3s ease-out, height .2s ease-out;
+      z-index: 10000;
+    }
+
+    .sheet--visible  { transform: translateY(0); }
+    .sheet--expanded { height: 90vh; }  /* “expanded” state */
+
+    .sheet__handle {
+      touch-action:none;
+      width: 40px;
+      height: 4px;
+      background: rgba(255,255,255,.7);
+      border-radius: 2px;
+      margin: 8px auto;
+      cursor: pointer;
+    }
+    #sheetContent {
+      display: flex;          /* now hosts side-by-side children */
+      flex: 1 1 auto;         /* fill the remaining sheet height */
+      padding: 0;             /* children handle their own padding */
+      background: none;       /* let the parent .sheet background show */
+      border-radius: 0;
+      overflow: hidden;       /* clip the static image / scrolling text */
+      height: calc(100% - 20px);  /* subtract whatever space your handle/close button eats */
+    }
+
+    .sheet__img {
+      flex: 0 0 40%;
+      display: flex;
+      align-items: center;
       justify-content: center;
-      z-index: 10000;                     /* above Cesium widgets */
-      padding: 2rem;
-      box-sizing: border-box;
-      font-family: system-ui;
-      opacity:0; visibility:hidden; pointer-events:none;
-      transition:opacity .25s ease;
+      padding: 0 1rem;
+      height: 100%;
     }
-    .sheet--visible {
-    opacity:1; visibility:visible; pointer-events:auto;
+    .sheet__img img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
     }
-    #sheetContent { max-width:none !important; width: auto; text-align:center;  max-height: 80vh;       /* restricts height */
-    overflow-y: auto;       /* enables scrolling */
-    padding: 1rem;
-    background: rgba(0,0,0,0.6);
-    border-radius: 1rem;
+
+    .sheet__text {
+      flex: 1;
+      height: 100%;
+      padding: 1rem;
+      overflow-y: auto;         /* only text scrolls */
+      color: #fff;              /* force white text */
+      line-height: 1.4;
     }
+
     #sheetContent::-webkit-scrollbar {
       width: 8px;
     }
@@ -140,9 +175,8 @@
     }
 
     #closeSheet {
-      position:absolute; top:1rem; right:1rem;
-      background:none; border:none; color:#fff;
-      font-size:2rem; cursor:pointer;
+    position:absolute; top:8px; right:12px;
+      background:none; border:none; color:#fff; font-size:1.5rem; cursor:pointer;
     }
     #closeSheet:hover { opacity:.7; }
     
@@ -215,9 +249,11 @@
   </script>
   <!-- overlay -->
   <div id="infoSheet" class="sheet">
+    <div class="sheet__handle" title="drag or click to expand"></div>
     <button id="closeSheet" aria-label="Close">✕</button>
-    <div id="sheetContent"></div>
+    <div id="sheetContent"><!-- JS will inject .sheet__img and .sheet__text here --></div>
   </div>
+
 
   <script type="module">
     import { showLoader } from './assets/loader/loader.js';
@@ -340,8 +376,8 @@
       const color = labelColors[site.importance] || Cesium.Color.WHITE;
       
         // 1) set the distance thresholds:
-        const fadeStart = 3_000_000.0; 
-        const fadeEnd   = 6_000_000.0; 
+        const fadeStart = 3_000_000.0; // fully opaque at ≤2 000 km
+        const fadeEnd   = 6_000_000.0; // fully transparent at ≥4 000 km
 
         const translucency = site.importance === 'quadrangle'
           ? undefined
@@ -455,10 +491,55 @@
 /* ─── Sheet logic ─────────────────────────────────────────────────── */
     const sheet        = document.getElementById("infoSheet");
     const sheetContent = document.getElementById("sheetContent");
+    const MAX_RATIO = 0.9;
+    const MIN_RATIO = 0.1;
+    const handle = document.querySelector('.sheet__handle');
+
     document.getElementById("closeSheet").onclick = hideSheet;
 
-    function showSheet () { sheet.classList.add("sheet--visible"); }
-    function hideSheet () { sheet.classList.remove("sheet--visible"); }
+    function showSheet() {
+      // always start in the collapsed (50vh) state
+      sheet.classList.remove("sheet--expanded");
+      sheet.classList.add("sheet--visible");
+    }
+
+    function hideSheet() {
+      // close and reset back to half-height
+      sheet.classList.remove("sheet--visible");
+      sheet.classList.remove("sheet--expanded");
+    }
+    
+    let   startY, startH;
+      handle.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        startY  = e.clientY;
+        startH  = sheet.getBoundingClientRect().height;
+        document.addEventListener('pointermove', onDrag);
+        document.addEventListener('pointerup',   onStop);
+      });
+
+      function onDrag(e) {
+        const dy     = e.clientY - startY;
+        let   newH   = startH - dy;
+
+        // ----- compute minimum height: just enough to show the title -----
+        const header = sheet.querySelector('.sheet__text h2');
+
+        // clamp between min and your CSS max-height (90vh)
+        const maxHpx = window.innerHeight * MAX_RATIO;
+        const minHpx = window.innerHeight * MIN_RATIO;
+        newH = Math.min(Math.max(newH, minHpx), maxHpx);
+
+        sheet.style.height = newH + 'px';
+      }
+
+      function onStop() {
+        document.removeEventListener('pointermove', onDrag);
+        document.removeEventListener('pointerup',   onStop);
+      }
+
+
+
 
 
     /* show sheet when a *label* (or any entity) is clicked */
@@ -481,14 +562,15 @@
         const blurb = entity.properties?.blurb?.getValue() ?? "";
         const img   = entity.properties?.img  ?.getValue();
 
-        sheetContent.innerHTML = `
-          <div style="max-width: 100%; display: flex; flex-direction: column; align-items: center;">
-            <h2 style="margin: 0 0 1rem;">${title}</h2>
-            ${img ? `<img src="${img}" style="width: 220px; max-width: 220px; height: auto; border-radius: 8px; margin-bottom: 1rem; display: block !important;">` : ""}
-            <p style="text-align: justify; line-height: 1.5; max-height: 50vh; overflow-y: auto;">${blurb}</p>
-          </div>
-        `;
-
+      sheetContent.innerHTML = `
+        <div class="sheet__img">
+          ${img ? `<img src="${img}" alt="${title}">` : ``}
+        </div>
+        <div class="sheet__text">
+          <h2 style="margin-top:0; text-align:left">${title}</h2>
+          <p>${blurb}</p>
+        </div>
+      `;
         showSheet();
       });
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
@@ -548,10 +630,12 @@
             const blurb = ent.properties.blurb.getValue();
             const img   = ent.properties.img.getValue();
             sheetContent.innerHTML = `
-              <div style="max-width: 100%; display: flex; flex-direction: column; align-items: center;">
-                <h2 style="margin: 0 0 1rem;">${title}</h2>
-                ${img ? `<img src="${img}" style="width: 120px; max-width: 120px; height: auto; border-radius: 8px; margin-bottom: 1rem; display: block !important;">` : ""}
-                <p style="text-align: justify; line-height: 1.5; max-height: 50vh; overflow-y: auto;">${blurb}</p>
+              <div class="sheet__img">
+                ${img ? `<img src="${img}" alt="${title}">` : ``}
+              </div>
+              <div class="sheet__text">
+                <h2 style="margin-top:0; text-align:left">${title}</h2>
+                <p>${blurb}</p>
               </div>
             `;
             showSheet();
@@ -562,12 +646,12 @@
     });
 
 
-
-
+    handle.addEventListener('click', () => {
+      document.getElementById('infoSheet').classList.toggle('sheet--expanded');
+    });
 
   </script>
 
 </body>
 </html>
-
 
