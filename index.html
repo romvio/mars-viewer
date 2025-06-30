@@ -508,6 +508,7 @@
     function showSheet() {
       // always start in the collapsed (50vh) state
       sheet.classList.remove("sheet--expanded");
+      sheet.style.height = window.innerHeight * DEFAULT_RATIO + 'px';
       sheet.classList.add("sheet--visible");
     }
 
@@ -515,6 +516,7 @@
       // close and reset back to half-height
       sheet.classList.remove("sheet--visible");
       sheet.classList.remove("sheet--expanded");
+      sheet.style.height = '';
     }
     let   sizeIndex = 1;         // start at DEFAULT_RATIO (index 1 of [MIN,DEF,MAX])
     let   isDragging = false;
@@ -548,6 +550,11 @@
         isDragging = false;
         document.removeEventListener('pointermove', onDrag);
         document.removeEventListener('pointerup',   onStop);
+        const currentH = sheet.getBoundingClientRect().height;
+          if (currentH <= window.innerHeight * MIN_RATIO * 1.05) {
+            // small buffer (5%) so it doesn’t mis-fire
+            hideSheet();
+          }
       }
 
       sheet.addEventListener('click', e => {
@@ -679,3 +686,4 @@
 
 </body>
 </html>
+
