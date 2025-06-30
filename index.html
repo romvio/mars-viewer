@@ -498,6 +498,7 @@
     const sheet        = document.getElementById("infoSheet");
     const sheetContent = document.getElementById("sheetContent");
     const MAX_RATIO = 0.9;
+    const DEFAULT_RATIO = 0.5;   // 50% VH normal
     const MIN_RATIO = 0.15;
     const handle = document.querySelector('.sheet__handle');
 
@@ -514,10 +515,14 @@
       sheet.classList.remove("sheet--visible");
       sheet.classList.remove("sheet--expanded");
     }
-    
+    let   sizeIndex = 1;         // start at DEFAULT_RATIO (index 1 of [MIN,DEF,MAX])
+    let   isDragging = false;
+    let   wasDragged = false;
     let   startY, startH;
+
       handle.addEventListener('pointerdown', e => {
-        e.preventDefault();
+        isDragging  = true;
+        wasDragged  = false;
         startY  = e.clientY;
         startH  = sheet.getBoundingClientRect().height;
         document.addEventListener('pointermove', onDrag);
@@ -525,6 +530,7 @@
       });
 
       function onDrag(e) {
+        wasDragged = true;
         const dy     = e.clientY - startY;
         let   newH   = startH - dy;
 
@@ -535,15 +541,28 @@
         const maxHpx = window.innerHeight * MAX_RATIO;
         const minHpx = window.innerHeight * MIN_RATIO;
         newH = Math.min(Math.max(newH, minHpx), maxHpx);
-
-        sheet.style.height = newH + 'px';
+        sheet.style.height = Math.min(Math.max(newH, minH), maxH) + 'px';
       }
 
       function onStop() {
+        isDragging = false;
         document.removeEventListener('pointermove', onDrag);
         document.removeEventListener('pointerup',   onStop);
       }
 
+      sheet.addEventListener('click', e => {
+        // only treat it as a “tap” if you didn’t actually drag
+        if (!wasDragged) {
+          sizeIndex = (sizeIndex + 1) % 3;                  // cycle 0 → 1 → 2 → 0
+          const ratios = [MIN_RATIO, DEFAULT_RATIO, MAX_RATIO];
+          const targetH = window.innerHeight * ratios[sizeIndex];
+          // animate the jump
+          sheet.style.transition = 'height 0.3s ease';
+          sheet.style.height     = targetH + 'px';
+          // clean up the transition after it finishes
+          setTimeout(() => sheet.style.transition = '', 300);
+        }
+      });
 
 
 
