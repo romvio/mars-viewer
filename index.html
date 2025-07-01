@@ -360,13 +360,13 @@
       primary:   "bold clamp(16px, 2vw, 32px) MarsFont",
       secondary: "bold clamp(14px, 1.4vw, 24px) MarsFont",
       tertiary:  "bold clamp(12px, 1vw, 20px) MarsFont",
-      quadrangle:"bold clamp(18px, 2.5vw, 36px) MarsFont"
+      quadrangle:"clamp(18px, 2.5vw, 36px) MarsFont"
     };
     const labelColors ={
       primary: Cesium.Color.WHITE,
       secondary: Cesium.Color.WHITE,
       tertiary:  Cesium.Color.WHITE,
-      quadrangle: Cesium.Color.YELLOW.withAlpha(0.15)
+      quadrangle: Cesium.Color.YELLOW.withAlpha(0.5)
     }
     const labelOutlines = {
       primary:   { color: Cesium.Color.WHITE, width: 1 },
@@ -421,11 +421,42 @@
         properties : {             // ← arbitrary JSON goes here
           blurb : site.blurb,
           img   : site.img,
-          isPOI : true
+          isPOI : true,
+          importance: site.importance
         }
       });
       entityMap[site.name] = ent;
     });
+    // 1) A helper to clamp a value:
+    function clamp(val, min, max) {
+      return Math.max(min, Math.min(max, val));
+    }
+
+    // 2) Compute pixel sizes based on window width (or height),
+    //    then update every label.font accordingly:
+    function updateLabelFonts() {
+      const w = window.innerWidth;
+
+      // tweak these factors & mins/maxs to taste:
+      const fonts = {
+        primary:   `bold ${clamp(Math.round(w * 0.020), 24, 48)}px MarsFont`,
+        secondary: `bold ${clamp(Math.round(w * 0.015), 18, 32)}px MarsFont`,
+        tertiary:  `bold ${clamp(Math.round(w * 0.010), 14, 28)}px MarsFont`,
+        quadrangle:`${clamp(Math.round(w * 0.025), 30, 60)}px MarsFont`,
+      };
+
+      viewer.entities.values.forEach(ent => {
+        const imp = ent.properties?.importance?.getValue();
+        ent.label.font = fonts[imp] || fonts.secondary;
+      });
+    }
+
+    // 3) Call once on load, and again whenever the window resizes:
+    updateLabelFonts();
+    window.addEventListener('resize', updateLabelFonts);
+
+
+
 
 /*-------------------------Equirectangular imagery ------------------------------------------*/
     const equirect_left = new Cesium.UrlTemplateImageryProvider({
