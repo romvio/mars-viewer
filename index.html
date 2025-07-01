@@ -228,7 +228,6 @@
     <select onchange="toggleOverlay(this.value)" class="overlay-dropdown">
       <option value="">Overlay: None</option>
       <option value="relief">Relief</option>
-      <option value="temperature">Temperature</option>
     </select>
   </div>
 
@@ -358,33 +357,43 @@
 
 /*------------------LABELS--------------------------------------------------------------*/
     const labelFonts = {
-      primary:   "24px MarsFont",
-      secondary: "16px MarsFont",
-      tertiary:  "12px MarsFont",
-      quadrangle: "24px MarsFont"
+      primary:    "bold 3.5vw MarsFont",
+      secondary:  "bold 2.5vw MarsFont",
+      tertiary:   "bold 1.5Vw MarsFont",
+      quadrangle: "3.0vw MarsFont"
     };
     const labelColors ={
       primary: Cesium.Color.WHITE,
       secondary: Cesium.Color.WHITE,
       tertiary:  Cesium.Color.WHITE,
-      quadrangle: Cesium.Color.YELLOW
+      quadrangle: Cesium.Color.YELLOW.withAlpha(0.15)
     }
-    const NEAR_DIST   = 5e6;    // 2 000 km away → full size
-    const FAR_DIST    = 15e6;   // 15 000 km away → small size
+    const labelOutlines = {
+      primary:   { color: Cesium.Color.WHITE, width: 1 },
+      secondary: { color: Cesium.Color.WHITE, width: 1 },
+      tertiary:  { color: Cesium.Color.WHITE, width: 1 },
+      quadrangle: { color: Cesium.Color.WHITE, width: 0.3}
+    };
+
+    const NEAR_DIST   = 6.5e6;    // 5 000 km away → full size
+    const FAR_DIST    = 9.5e6;   // 10 000 km away → small size
     const NEAR_SCALE  = 1.0;    // 100% of your font size
-    const FAR_SCALE   = 0.4;    // 40% of your font size
+    const FAR_SCALE   = 0.3;    // 30% of your font size
     const labelScale = new Cesium.NearFarScalar(
       NEAR_DIST, NEAR_SCALE,
       FAR_DIST,  FAR_SCALE
     );
+
     const entityMap = {};
     marsLabels.forEach(site => {
       const font = labelFonts[site.importance] || labelFonts.secondary;
       const color = labelColors[site.importance] || Cesium.Color.WHITE;
+      const outlineCfg  = labelOutlines[site.importance] || labelOutlines.secondary;
+
       
         // 1) set the distance thresholds:
-        const fadeStart = 3_000_000.0; // fully opaque at ≤2 000 km
-        const fadeEnd   = 6_000_000.0; // fully transparent at ≥4 000 km
+        const fadeStart = 4_000_000.0; // fully opaque at ≤2 000 km
+        const fadeEnd   = 6_500_000.0; // fully transparent at ≥4 000 km
 
         const translucency = site.importance === 'quadrangle'
           ? undefined
@@ -401,8 +410,8 @@
           text: site.name,
           font: font,
           fillColor: color,
-          outlineColor: Cesium.Color.WHITE,
-          outlineWidth: 0.5,
+          outlineColor: outlineCfg.color,
+          outlineWidth: outlineCfg.width,
           style: Cesium.LabelStyle.FILL_AND_OUTLINE,
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           heightReference: Cesium.HeightReference.none,
@@ -710,5 +719,3 @@
 
 </body>
 </html>
-
-
