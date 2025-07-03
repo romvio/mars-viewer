@@ -1,0 +1,48 @@
+#hoverTooltip {
+  position: absolute;
+  display: none;
+  background: rgba(0, 0, 0, 0.551);
+  color: #fff;
+  padding: clamp(2px, 0.5vw, 8px) clamp(4px, 1vw, 12px);
+  border-radius: 8px;
+  width: clamp(120px, 15vw, 200px);
+  font-size: clamp(6px, 0.8vw, 14px);
+  line-height: 1.2;
+  pointer-events: auto;
+  z-index: 1000; 
+  opacity: 0;
+  transform: scale(0.85);
+  transition: 
+    opacity 0.2s ease-out,
+    transform 0.2s cubic-bezier(0.2, 1.0, 0.3, 1.0);
+}
+#hoverTooltip.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+#hoverTooltip img {
+  display: block;
+  max-width: 25%;
+  align-items: center;
+  height: auto;
+  margin: 0 auto clamp(2px, 0.5vw, 6px); /* top 0, horizontal auto, bottom spacing */
+  border-radius: 4px;
+  object-fit: cover;
+  display: block;
+}
+
+#hoverTooltip h4 {
+  margin: 0 0 clamp(3px, 0.7vw, 8px);
+  font-size: clamp(13px, 2vw, 15px);   /* larger min & max */
+  font-weight: 600;                    /* or “bold” */
+  cursor: pointer;
+  transition:  text-decoration .15s ease-in-out;
+}
+#hoverTooltip h4:hover {
+  text-decoration: underline;
+}
+
+#hoverTooltip p {
+  margin: 0;
+  font-size: clamp(6px, 1vw, 8px);   /* slightly smaller scale */
+}

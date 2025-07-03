@@ -1,3 +1,6 @@
+/* Mars landmarks ─ you can feed this straight into Cesium
+   Example:  viewer.entities.add({ position: Cesium.Cartesian3.fromDegrees(f.lon, f.lat, 0), … })
+*/
 export const marsLabels_2= [
   {
     name : "Olympus Mons",
