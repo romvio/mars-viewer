@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="./assets/loader/loader.css">
   <link rel="stylesheet" href="./assets/search-bar/search-css.css">
   <link rel="stylesheet" href="Cesium/Widgets/widgets.css">
+  <link rel="stylesheet" href="./assets/tooltip/tooltip.css">
   <link rel="preload" href="custom-fonts/CaviarDreams.ttf" as="font" type="font/ttf" crossorigin="anonymous">
 
   <style>
@@ -206,6 +207,8 @@
       style="height:auto; display:block;"
     />
   </a>
+  
+  <div id="hoverTooltip" class="hoverTooltip"></div>
 
   <div id="search-container">
     <input
@@ -301,6 +304,9 @@
     viewer.scene.fog.enabled = false;                // Distance fog (white fade)
     viewer._cesiumWidget._creditContainer.style.display = "none";
     viewer.scene.globe.depthTestAgainstTerrain = false;
+    viewer.resolutionScale = window.devicePixelRatio; 
+    viewer.scene.postProcessStages.fxaa.enabled = false;
+
     const controller = viewer.scene.screenSpaceCameraController;
     controller.maximumZoomDistance = 20_000_000.0;
     controller.minimumZoomDistance = 250_000.0;
@@ -369,10 +375,10 @@
       quadrangle: Cesium.Color.YELLOW.withAlpha(0.5)
     }
     const labelOutlines = {
-      primary:   { color: Cesium.Color.WHITE, width: 1 },
-      secondary: { color: Cesium.Color.WHITE, width: 1 },
-      tertiary:  { color: Cesium.Color.WHITE, width: 1 },
-      quadrangle: { color: Cesium.Color.WHITE, width: 0.3}
+      primary:   { color: Cesium.Color.WHITE, width: 0 },
+      secondary: { color: Cesium.Color.WHITE, width: 0 },
+      tertiary:  { color: Cesium.Color.WHITE, width: 0 },
+      quadrangle: { color: Cesium.Color.WHITE, width: 0}
     };
 
     const NEAR_DIST   = 6.5e6;    // 5 000 km away → full size
@@ -559,6 +565,30 @@
       sheet.classList.remove("sheet--expanded");
       sheet.style.height = '';
     }
+
+    function showEntityInfo(entity) {
+      if (!entity) return hideSheet();
+      hideSheet();   // reset any open state
+      const offset = new Cesium.HeadingPitchRange(
+        0, Cesium.Math.toRadians(-90), 900_000
+      );
+      viewer.flyTo(entity, { offset, duration: 2 }).then(() => {
+        const title = entity.name;
+        const blurb = entity.properties?.blurb?.getValue() ?? "";
+        const img   = entity.properties?.img  ?.getValue()   ?? "";
+        sheetContent.innerHTML = `
+          <div class="sheet__img">
+            ${img ? `<img src="${img}" alt="${title}">` : ``}
+          </div>
+          <div class="sheet__text">
+            <h2 style="margin-top:0; text-align:left">${title}</h2>
+            <p>${blurb}</p>
+          </div>
+        `;
+        showSheet();
+      });
+    }
+
     let   sizeIndex = 1;         // start at DEFAULT_RATIO (index 1 of [MIN,DEF,MAX])
     let   isDragging = false;
     let   wasDragged = false;
@@ -640,35 +670,14 @@
 
     /* show sheet when a *label* (or any entity) is clicked */
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-
     handler.setInputAction(movement => {
       const picked = viewer.scene.pick(movement.position);
-
-      /* background click → close */
-      if (!picked?.id || !picked.id.label) { hideSheet(); return; }
-
-      const entity = picked.id;
-      hideSheet();   // ensure clean state
-
-      const offset = new Cesium.HeadingPitchRange(
-        0, Cesium.Math.toRadians(-90), 900_000);
-
-      viewer.flyTo(entity, { offset, duration:2 }).then(() => {
-        const title = entity.name;
-        const blurb = entity.properties?.blurb?.getValue() ?? "";
-        const img   = entity.properties?.img  ?.getValue();
-
-      sheetContent.innerHTML = `
-        <div class="sheet__img">
-          ${img ? `<img src="${img}" alt="${title}">` : ``}
-        </div>
-        <div class="sheet__text">
-          <h2 style="margin-top:0; text-align:left">${title}</h2>
-          <p>${blurb}</p>
-        </div>
-      `;
-        showSheet();
-      });
+      const ent    = picked?.id;
+      if (ent?.label) {
+        showEntityInfo(ent);
+      } else {
+        hideSheet();
+      }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
     /* Esc key closes the panel */
@@ -746,7 +755,93 @@
       document.getElementById('infoSheet').classList.toggle('sheet--expanded');
     });
 
+/*------------------------TOOLTIP--------------------------------------------------------------------------------------*/
+    // 1) grab the tooltip div
+    const tooltip       = document.getElementById('hoverTooltip');
+    let lastHovered   = null;
+    let isTooltipUp   = false;
+    let showTimeout   = null;
+    let hideTimeout   = null;
+    // helper to show
+    function showTooltip(entity) {
+      lastHovered=entity;
+      // 1) populate the content
+      const name   = entity.name;
+      const blurb  = entity.properties.blurb.getValue();
+      const imgUrl = entity.properties.img.getValue();
+      tooltip.innerHTML = `
+        <h4>${name}</h4>
+        ${imgUrl ? `<img src="${imgUrl}" alt="${name}">` : ''}
+        <p>${blurb.substring(0,80)}${blurb.length>80?'…':''}</p>
+      `;
+
+      // 2) make it visible first so the browser can calculate its size
+      tooltip.style.display = 'block';
+      requestAnimationFrame(() => {
+        tooltip.classList.add('visible');
+      });
+      void tooltip.offsetWidth;
+      // 3) next frame, measure & position
+        const pos3d     = entity.position.getValue(viewer.clock.currentTime);
+        const screenPos = Cesium.SceneTransforms.wgs84ToWindowCoordinates(viewer.scene, pos3d);
+        const tipW      = tooltip.offsetWidth;
+        const tipH      = tooltip.offsetHeight;
+        const margin    = 8;
+
+        // center horizontally on the label
+        let x = screenPos.x - tipW / 2;
+        // try placing above
+        let y = screenPos.y - tipH - margin;
+
+        // if it would go off-top, flip below
+        if (y < 0) {
+          y = screenPos.y + margin;
+        }
+
+        // clamp so it never exceeds the viewport
+        x = Math.min(Math.max(x, 0), window.innerWidth  - tipW);
+        y = Math.min(Math.max(y, 0), window.innerHeight - tipH);
+
+        tooltip.style.left = `${x}px`;
+        tooltip.style.top  = `${y}px`;
+        requestAnimationFrame(() => tooltip.classList.add('visible'));
+      }
+
+
+    // helper to hide
+    function hideTooltip() {
+      tooltip.style.display = 'none';
+      tooltip.classList.remove('visible');   // if you added one for fade/scale
+      tooltip.removeAttribute('data-entity');
+    }
+
+    // screen‐space hover detector
+    const hoverHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    hoverHandler.setInputAction(movement => {
+    const picked = viewer.scene.pick(movement.endPosition);
+    const ent    = picked?.id;
+
+    if (ent?.properties?.isPOI) {
+      // always show/reposition for the current POI
+      showTooltip(ent);
+    } else {
+      hideTooltip();
+    }
+  }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+    // also hide when you leave the tooltip itself
+    tooltip.addEventListener('mouseleave', hideTooltip);
+
+    // if you click the tooltip, open the sheet
+    tooltip.addEventListener('click', () => {
+      if (lastHovered) {
+        showEntityInfo(lastHovered);
+        hideTooltip();
+      }
+    });
+
   </script>
 
 </body>
 </html>
+
