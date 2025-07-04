@@ -131,12 +131,24 @@
       cursor: grab;
     }
 
-    #close-sheet{
-      position:absolute; top:8px; right:12px;
-      background:none; border:0; font-size:2rem;
-      line-height:1; cursor:pointer;
-      z-index:100000;
-      color: WHITE;
+    #close-sheet {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      border-radius: 50%;
+      font-size: 1.5rem;
+      line-height: 1;
+      color: #fff;
+      cursor: pointer;
+      z-index: 2002;              /* above everything in the sheet */
+      touch-action: manipulation; /* makes taps more responsive */
     }
     .loader-overlay {
       position: fixed;
