@@ -3,6 +3,7 @@
   display: none;
   background: rgba(0, 0, 0, 0.551);
   color: #fff;
+  overflow-y: auto;                  /* scroll if text overflows */
   padding: clamp(2px, 0.5vw, 8px) clamp(4px, 1vw, 12px);
   border-radius: 8px;
   width: clamp(120px, 15vw, 200px);
@@ -12,6 +13,8 @@
   z-index: 1000; 
   opacity: 0;
   transform: scale(0.85);
+  max-height: clamp(80px, 20vh, 160px);    /* <— add this line */
+  overflow-y: auto; 
   transition: 
     opacity 0.2s ease-out,
     transform 0.2s cubic-bezier(0.2, 1.0, 0.3, 1.0);
@@ -28,7 +31,6 @@
   margin: 0 auto clamp(2px, 0.5vw, 6px); /* top 0, horizontal auto, bottom spacing */
   border-radius: 4px;
   object-fit: cover;
-  display: block;
 }
 
 #hoverTooltip h4 {
@@ -36,6 +38,7 @@
   font-size: clamp(13px, 2vw, 15px);   /* larger min & max */
   font-weight: 600;                    /* or “bold” */
   cursor: pointer;
+  pointer-events: auto;
   transition:  text-decoration .15s ease-in-out;
 }
 #hoverTooltip h4:hover {
@@ -44,5 +47,9 @@
 
 #hoverTooltip p {
   margin: 0;
-  font-size: clamp(6px, 1vw, 8px);   /* slightly smaller scale */
+  /* clamp to 3 lines via CSS: */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
