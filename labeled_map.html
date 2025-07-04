@@ -237,13 +237,20 @@
     sheet.addEventListener('touchend', e => {
       if (touchStartY === null) return;
       const touchEndY = e.changedTouches[0].clientY;
-      // if you dragged down more than 100px, close
       if (touchEndY - touchStartY > 100) {
         closeSheet();
       }
       touchStartY = null;
     }, { passive: true });
 
+    const closeBtn = document.getElementById('close-sheet');
+    // prevent any panning/overlay clicks from stealing this tap
+    ['pointerdown','touchstart','click'].forEach(evt =>
+      closeBtn.addEventListener(evt, e => {
+        e.stopPropagation();
+        closeSheet();
+      })
+    );
 
 
     // open viewer when a map entry is clicked
@@ -289,7 +296,7 @@
       }, 250);
     }
     overlay.addEventListener('click', e=>{ if(e.target===overlay) closeSheet(); });
-    document.getElementById('close-sheet').onclick = closeSheet;
+    //document.getElementById('close-sheet').onclick = closeSheet;
   </script>
 
 
