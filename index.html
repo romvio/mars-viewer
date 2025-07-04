@@ -762,83 +762,101 @@
     let isTooltipUp   = false;
     let showTimeout   = null;
     let hideTimeout   = null;
+    let currentEntityId = null;
+    let   currentId = null;
+
     // helper to show
-    function showTooltip(entity) {
-      lastHovered=entity;
-      // 1) populate the content
-      const name   = entity.name;
-      const blurb  = entity.properties.blurb.getValue();
-      const imgUrl = entity.properties.img.getValue();
-      tooltip.innerHTML = `
-        <h4>${name}</h4>
-        ${imgUrl ? `<img src="${imgUrl}" alt="${name}">` : ''}
-        <p>${blurb.substring(0,80)}${blurb.length>80?'…':''}</p>
-      `;
+// POSITION & CLAMP + FLIP
+function repositionTooltip(entity) {
+  const worldPos = entity.position.getValue(viewer.clock.currentTime);
+  const winPos   = Cesium.SceneTransforms.wgs84ToWindowCoordinates(viewer.scene, worldPos);
+  const tipW     = tooltip.offsetWidth;
+  const tipH     = tooltip.offsetHeight;
+  const margin   = 8;
 
-      // 2) make it visible first so the browser can calculate its size
-      tooltip.style.display = 'block';
-      requestAnimationFrame(() => {
-        tooltip.classList.add('visible');
-      });
-      void tooltip.offsetWidth;
-      // 3) next frame, measure & position
-        const pos3d     = entity.position.getValue(viewer.clock.currentTime);
-        const screenPos = Cesium.SceneTransforms.wgs84ToWindowCoordinates(viewer.scene, pos3d);
-        const tipW      = tooltip.offsetWidth;
-        const tipH      = tooltip.offsetHeight;
-        const margin    = 8;
+  let x = winPos.x - tipW / 2;
+  let y = winPos.y - tipH - margin;
+  if (y < 0) y = winPos.y + margin;
 
-        // center horizontally on the label
-        let x = screenPos.x - tipW / 2;
-        // try placing above
-        let y = screenPos.y - tipH - margin;
+  x = Math.min(Math.max(0, x), window.innerWidth  - tipW);
+  y = Math.min(Math.max(0, y), window.innerHeight - tipH);
 
-        // if it would go off-top, flip below
-        if (y < 0) {
-          y = screenPos.y + margin;
-        }
+  tooltip.style.left = `${x}px`;
+  tooltip.style.top  = `${y}px`;
+}
 
-        // clamp so it never exceeds the viewport
-        x = Math.min(Math.max(x, 0), window.innerWidth  - tipW);
-        y = Math.min(Math.max(y, 0), window.innerHeight - tipH);
+// SHOW
+function showTooltip(entity) {
+  currentId = entity.id;
 
-        tooltip.style.left = `${x}px`;
-        tooltip.style.top  = `${y}px`;
-        requestAnimationFrame(() => tooltip.classList.add('visible'));
-      }
+  const blurb = entity.properties.blurb.getValue();
+  // take only first 80 chars, add ellipsis if longer
+  const snippet = blurb.length > 80
+    ? blurb.substring(0, 80) + '…'
+    : blurb;
 
+  tooltip.innerHTML = `
+    <h4>${entity.name}</h4>
+    ${entity.properties.img.getValue() 
+       ? `<img src="${entity.properties.img.getValue()}" alt="">` 
+       : ''}
+    <p>${snippet}</p>
+  `;
 
-    // helper to hide
-    function hideTooltip() {
+  tooltip.style.display = 'block';
+  void tooltip.offsetWidth;   // force reflow for Firefox
+  repositionTooltip(entity);
+  tooltip.classList.add('visible');
+}
+
+// HIDE
+function hideTooltip() {
+  if (!tooltip.classList.contains('visible')) return;
+  tooltip.classList.remove('visible');
+  // once fade-out done, pull out of layout
+  tooltip.addEventListener('transitionend', function onEnd(e) {
+    if (e.propertyName === 'opacity' && !tooltip.classList.contains('visible')) {
       tooltip.style.display = 'none';
-      tooltip.classList.remove('visible');   // if you added one for fade/scale
-      tooltip.removeAttribute('data-entity');
+      tooltip.removeEventListener('transitionend', onEnd);
+      currentId = null;
     }
+  });
+}
 
-    // screen‐space hover detector
-    const hoverHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-    hoverHandler.setInputAction(movement => {
-    const picked = viewer.scene.pick(movement.endPosition);
-    const ent    = picked?.id;
+// 1) DRIVE FROM Cesium MOUSE_MOVE
+const hoverhandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+hoverhandler.setInputAction(({ endPosition }) => {
+  const picked = viewer.scene.pick(endPosition);
+  const ent    = picked?.id;
 
-    if (ent?.properties?.isPOI) {
-      // always show/reposition for the current POI
-      showTooltip(ent);
-    } else {
+  if (ent?.properties?.isPOI) {
+    showTooltip(ent);
+  } else {
+    // only hide if pointer is not over the tooltip itself
+    if (!tooltip.matches(':hover')) {
       hideTooltip();
     }
-  }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+  }
+}, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
-    // also hide when you leave the tooltip itself
-    tooltip.addEventListener('mouseleave', hideTooltip);
+// 2) KEEP IT OPEN WHEN YOU’RE ON THE TOOLTIP
+tooltip.addEventListener('mouseenter', () => {
+  // nothing to do – prevents hideTooltip from firing
+});
 
-    // if you click the tooltip, open the sheet
-    tooltip.addEventListener('click', () => {
-      if (lastHovered) {
-        showEntityInfo(lastHovered);
-        hideTooltip();
-      }
-    });
+// 3) HIDE WHEN LEAVING TOOLTIP
+tooltip.addEventListener('mouseleave', () => {
+  hideTooltip();
+});
+
+// 4) ONLY TITLE IS CLICKABLE
+tooltip.addEventListener('click', (e) => {
+  if (e.target.tagName === 'H4' && currentId) {
+    const ent = viewer.entities.getById(currentId);
+    showEntityInfo(ent);
+    hideTooltip();
+  }
+});
 
   </script>
 
