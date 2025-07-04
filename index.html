@@ -372,17 +372,17 @@
       primary: Cesium.Color.WHITE,
       secondary: Cesium.Color.WHITE,
       tertiary:  Cesium.Color.WHITE,
-      quadrangle: Cesium.Color.YELLOW.withAlpha(0.5)
+      quadrangle: Cesium.Color.YELLOW.withAlpha(0.65)
     }
     const labelOutlines = {
       primary:   { color: Cesium.Color.WHITE, width: 0 },
       secondary: { color: Cesium.Color.WHITE, width: 0 },
       tertiary:  { color: Cesium.Color.WHITE, width: 0 },
-      quadrangle: { color: Cesium.Color.WHITE, width: 0}
+      quadrangle: { color: Cesium.Color.WHITE, width: 0.3}
     };
 
     const NEAR_DIST   = 4.5e6;    // 5 000 km away → full size
-    const FAR_DIST    = 9.5e6;   // 10 000 km away → small size
+    const FAR_DIST    = 9.0e6;   // 10 000 km away → small size
     const NEAR_SCALE  = 0.8;    // 100% of your font size
     const FAR_SCALE   = 0.3;    // 30% of your font size
     const labelScale = new Cesium.NearFarScalar(
@@ -399,7 +399,7 @@
       
         // 1) set the distance thresholds:
         const fadeStart = 4_000_000.0; // fully opaque at ≤2 000 km
-        const fadeEnd   = 6_500_000.0; // fully transparent at ≥4 000 km
+        const fadeEnd   = 7_500_000.0; // fully transparent at ≥4 000 km
 
         const translucency = site.importance === 'quadrangle'
           ? undefined
