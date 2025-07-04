@@ -93,7 +93,7 @@
       display:none;                 /* toggled by JS */
       align-items:center;           /* centre on screen */
       justify-content:center;
-      z-index:9999;
+      z-index:99999;
     }
 
     #sheet{
@@ -135,7 +135,7 @@
       position:absolute; top:8px; right:12px;
       background:none; border:0; font-size:2rem;
       line-height:1; cursor:pointer;
-      z-index:10;
+      z-index:100000;
       color: WHITE;
     }
     .loader-overlay {
@@ -213,6 +213,23 @@
     const sheet   = document.getElementById('sheet');
     const imgBox  = document.getElementById('sheet-img');
     let pz;                                    // Panzoom instance
+    // allow a downward swipe to close the sheet
+    let touchStartY = null;
+    sheet.addEventListener('touchstart', e => {
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    sheet.addEventListener('touchend', e => {
+      if (touchStartY === null) return;
+      const touchEndY = e.changedTouches[0].clientY;
+      // if you dragged down more than 100px, close
+      if (touchEndY - touchStartY > 100) {
+        closeSheet();
+      }
+      touchStartY = null;
+    }, { passive: true });
+
+
 
     // open viewer when a map entry is clicked
     document.querySelectorAll('.map-item').forEach(el=>{
@@ -319,7 +336,16 @@
         20.0,   // latitude (°N)
       10000000.0  // altitude in meters (smaller = “zoomed in”)
       )
-    });    
+    });
+
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(-135, 18, 200000),  // Olympus Mons
+        orientation: {
+          heading: Cesium.Math.toRadians(0),
+          roll: 0.0,
+        },
+      });
+    
     // Enable gentle auto-rotation
     viewer.clock.shouldAnimate = true;
     viewer.clock.multiplier = 0.1;
