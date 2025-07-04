@@ -94,6 +94,7 @@
       align-items:center;           /* centre on screen */
       justify-content:center;
       z-index:99999;
+      transition: .25s ease;
     }
 
     #sheet{
@@ -225,6 +226,8 @@
     const sheet   = document.getElementById('sheet');
     const imgBox  = document.getElementById('sheet-img');
     let pz;                                    // Panzoom instance
+    const menuBtn = document.querySelector('.menu-btn');
+
     // allow a downward swipe to close the sheet
     let touchStartY = null;
     sheet.addEventListener('touchstart', e => {
@@ -246,6 +249,7 @@
     // open viewer when a map entry is clicked
     document.querySelectorAll('.map-item').forEach(el=>{
       el.addEventListener('click', e=>{
+        menuBtn.style.visibility = 'hidden';
         e.preventDefault();
         imgBox.src = el.dataset.img;
 
@@ -277,8 +281,12 @@
 
     // close helpers
     function closeSheet(){
+      menuBtn.style.visibility = 'visible';
       sheet.classList.remove('open');
-      setTimeout(()=>{ overlay.style.display='none'; pz?.dispose(); }, 250);
+      setTimeout(()=>{
+        overlay.style.display = 'none';
+        pz?.dispose();
+      }, 250);
     }
     overlay.addEventListener('click', e=>{ if(e.target===overlay) closeSheet(); });
     document.getElementById('close-sheet').onclick = closeSheet;
